@@ -1,0 +1,49 @@
+@[build topology@]
+
+NodeContainer nodes;
+nodes.Create (12);
+
+MobilityHelper mobility;
+mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
+                               "MinX", DoubleValue (0.0),
+                               "MinY", DoubleValue (0.0),
+                               "DeltaX", DoubleValue (10.0),
+                               "DeltaY", DoubleValue (10.0),
+                               "GridWidth", UintegerValue (4),
+                               "LayoutType", StringValue ("RowFirst"));
+
+mobility.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
+                           "Bounds", RectangleValue (Rectangle (-50, 50, -50, 50)));
+ 
+mobility.Install (nodes);
+
+NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodes);
+
+AodvHelper aodv;
+stack.SetRoutingHelper (aodv);
+stack.Install (nodes);
+address.SetBase ("10.1.1.0", "255.255.255.0");
+Ipv4InterfaceContainer ints = address.Assign (devices);
+@
+
+@[add events@]
+ApplicationContainer apps;
+
+OnOffHelper onoff ("ns3::UdpSocketFactory", Address (InetSocketAddress (ints.GetAddress (11), 12345)));
+onoff.SetAttribute ("PacketSize", UintegerValue (packetSize));
+
+onoff.SetAttribute ("DataRate", StringValue ("1Mbps"));
+apps = onoff.Install (nodes.Get (0));
+apps.Start (Seconds (1));
+
+PacketSinkHelper sinkUdp ("ns3::UdpSocketFactory", Address (InetSocketAddress (Ipv4Address::GetAny (), 12345)));
+apps = sinkUdp.Install (nodes.Get (11));
+apps.Start (Seconds (0.001));
+
+Simulator::Stop (Seconds (10));
+@
+
+@[configure tracing@]
+wifiPhy.EnablePcap ("lab3", devices);
+@
+

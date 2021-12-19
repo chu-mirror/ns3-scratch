@@ -1,0 +1,80 @@
+
+Do some common settings for scripts of lab.
+
+@[ns3 script@]
+@{includes@}
+using namespace ns3;
+
+@{callbacks@}
+
+int
+main(int argc, char *argv[])
+{
+	std::string phyMode ("DsssRate1Mbps");
+	int packetSize = 1400;
+	int rtscts = 0;
+
+	CommandLine cmd (__FILE__);
+	cmd.AddValue ("phyMode", "Wifi Phy Mode", phyMode);
+	cmd.AddValue ("packetSize", "Packet Size of UDP (lab2)", packetSize);
+	cmd.AddValue ("rtscts", "Enable/Disable RTS/CTS (lab2)", rtscts);
+	cmd.Parse (argc, argv);
+
+	@{initialize regular helpers@}
+	@{build topology@}
+	@{add events@}
+	@{configure tracing@}
+
+	Simulator::Run ();
+
+	@{collect data@}
+
+	Simulator::Destroy ();
+	return 0;
+}
+@
+
+@[includes@]
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/aodv-module.h"
+@
+
+@[initialize regular helpers@]
+/* MAC */
+PointToPointHelper pointToPoint;
+pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("500Kbps"));
+pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+YansWifiPhyHelper wifiPhy;
+wifiPhy.Set ("RxGain", DoubleValue (-10) );
+wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+
+YansWifiChannelHelper wifiChannel;
+wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+wifiChannel.AddPropagationLoss ("ns3::FriisPropagationLossModel");
+wifiPhy.SetChannel (wifiChannel.Create ());
+
+WifiHelper wifi;
+wifi.SetStandard (WIFI_STANDARD_80211b);
+wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+			      "DataMode",StringValue (phyMode),
+			      "ControlMode",StringValue (phyMode));
+Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
+
+WifiMacHelper wifiMac;
+wifiMac.SetType ("ns3::AdhocWifiMac"); // use ad-hoc MAC
+
+/* NetWork */
+InternetStackHelper stack;
+Ipv4AddressHelper address;
+
+/* Application */
+@
+
